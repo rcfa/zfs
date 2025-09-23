@@ -2550,8 +2550,8 @@ vdev_raidz_io_verify(zio_t *zio, raidz_map_t *rm, raidz_row_t *rr, int col)
 	zfs_range_seg64_t logical_rs, physical_rs, remain_rs;
 	logical_rs.rs_start = rr->rr_offset;
 	logical_rs.rs_end = logical_rs.rs_start +
-	    vdev_raidz_psize_to_asize(zio->io_vd, rr->rr_size,
-	    BP_GET_PHYSICAL_BIRTH(zio->io_bp));
+	    vdev_psize_to_asize_txg(zio->io_vd,
+	    rr->rr_size, BP_GET_PHYSICAL_BIRTH(zio->io_bp));
 
 	raidz_col_t *rc = &rr->rr_col[col];
 	vdev_t *cvd = zio->io_vd->vdev_child[rc->rc_devidx];
@@ -2793,6 +2793,24 @@ vdev_raidz_io_start_read(zio_t *zio, raidz_map_t *rm)
 	}
 }
 
+void
+vdev_raidz_io_start_impl(zio_t *zio, raidz_map_t *rm, uint64_t logical_width,
+    uint64_t physical_width)
+{
+	zio_batch_create(zio);
+
+	if (zio->io_type == ZIO_TYPE_WRITE) {
+		for (int i = 0; i < rm->rm_nrows; i++)
+			vdev_raidz_io_start_write(zio, rm->rm_row[i]);
+
+		if (logical_width == physical_width)
+			raidz_start_skip_writes(zio);
+	} else {
+		ASSERT(zio->io_type == ZIO_TYPE_READ);
+		vdev_raidz_io_start_read(zio, rm);
+	}
+}
+
 /*
  * Start an IO operation on a RAIDZ VDev
  *
@@ -2905,20 +2923,8 @@ vdev_raidz_io_start(zio_t *zio)
 
 	zio->io_vsd = rm;
 	zio->io_vsd_ops = &vdev_raidz_vsd_ops;
-	zio_batch_create(zio);
-
-	if (zio->io_type == ZIO_TYPE_WRITE) {
-		for (int i = 0; i < rm->rm_nrows; i++) {
-			vdev_raidz_io_start_write(zio, rm->rm_row[i]);
-		}
-
-		if (logical_width == vdrz->vd_physical_width) {
-			raidz_start_skip_writes(zio);
-		}
-	} else {
-		ASSERT(zio->io_type == ZIO_TYPE_READ);
-		vdev_raidz_io_start_read(zio, rm);
-	}
+	vdev_raidz_io_start_impl(zio, rm, logical_width,
+	    vdrz->vd_physical_width);
 
 	zio_execute(zio_batch_rele(zio));
 }

@@ -2004,7 +2004,7 @@ vdev_extra_sync(zio_t *zio, uint64_t *good_writes, vdev_t *vd, int flags,
 	if (!vdev_writeable(vd))
 		return;
 
-	if (vd->vdev_top->vdev_ops == &vdev_anyraid_ops) {
+	if (vdev_is_anyraid(vd->vdev_top)) {
 		vdev_anyraid_write_map_sync(vd, zio, txg, good_writes, flags,
 		    status);
 	}
@@ -2023,7 +2023,7 @@ vdev_extra_sync_all(spa_t *spa, int flags, uint64_t txg,
 	boolean_t have_extra = B_FALSE;
 
 	for (int i = 0; i < svdcount; i++) {
-		if (vdevs[i]->vdev_ops == &vdev_anyraid_ops) {
+		if (vdev_is_anyraid(vdevs[i])) {
 			have_extra = B_TRUE;
 			break;
 		}
