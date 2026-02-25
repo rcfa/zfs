@@ -261,7 +261,7 @@ create_tile_entry(vdev_anyraid_t *var, anyraid_map_loc_entry_t *amle,
 
 	anyraid_tile_node_t *atn = kmem_alloc(sizeof (*atn), KM_SLEEP);
 	atn->atn_disk = disk;
-	atn->atn_offset = offset;
+	atn->atn_tile_idx = offset;
 	list_insert_tail(&at->at_list, atn);
 	*pat_cnt = (*pat_cnt + 1) % (var->vd_nparity + 1);
 
@@ -1166,7 +1166,7 @@ vdev_anyraid_mirror_start(zio_t *zio, anyraid_tile_t *tile)
 		vdev_t *cvd = vd->vdev_child[atn->atn_disk];
 		mc->mc_vd = cvd;
 		mc->mc_offset = VDEV_ANYRAID_START_OFFSET +
-		    atn->atn_offset * rsize + zio->io_offset % rsize;
+		    atn->atn_tile_idx * rsize + zio->io_offset % rsize;
 		/* A child that failed to open may be too small for it */
 		ASSERT(vdev_is_dead(cvd) || mc->mc_offset <
 		    cvd->vdev_psize - VDEV_LABEL_END_SIZE);
@@ -1324,7 +1324,7 @@ vdev_anyraid_map_impl(vdev_t *vd, uint64_t tile_id, avl_index_t where)
 		anyraid_tile_node_t *atn =
 		    kmem_alloc(sizeof (*atn), KM_SLEEP);
 		atn->atn_disk = vans[i]->van_id;
-		atn->atn_offset =
+		atn->atn_tile_idx =
 		    vans[i]->van_next_offset++;
 		list_insert_tail(&tile->at_list, atn);
 	}
@@ -1406,7 +1406,7 @@ vdev_anyraid_io_start(zio_t *zio)
 
 	anyraid_tile_node_t *atn = list_head(&tile->at_list);
 	vdev_t *cvd = vd->vdev_child[atn->atn_disk];
-	uint64_t child_offset = atn->atn_offset * rsize +
+	uint64_t child_offset = atn->atn_tile_idx * rsize +
 	    zio->io_offset % rsize;
 	child_offset += VDEV_ANYRAID_START_OFFSET;
 
@@ -1538,7 +1538,7 @@ vdev_anyraid_xlate(vdev_t *cvd, const zfs_range_seg64_t *logical_rs,
 		return;
 	}
 
-	uint64_t child_offset = atn->atn_offset * rsize +
+	uint64_t child_offset = atn->atn_tile_idx * rsize +
 	    logical_rs->rs_start % rsize;
 	child_offset += VDEV_ANYRAID_START_OFFSET;
 	uint64_t size = logical_rs->rs_end - logical_rs->rs_start;
@@ -1571,7 +1571,7 @@ map_write_loc_entry(anyraid_tile_node_t *atn, void *buf, uint32_t *offset)
 	anyraid_map_loc_entry_t *entry = (void *)((char *)buf + *offset);
 	amle_set_type(entry);
 	amle_set_disk(entry, atn->atn_disk);
-	amle_set_offset(entry, atn->atn_offset);
+	amle_set_offset(entry, atn->atn_tile_idx);
 	*offset += sizeof (*entry);
 	return (*offset == SPA_MAXBLOCKSIZE);
 }
@@ -1797,7 +1797,6 @@ static uint64_t
 vdev_anyraid_min_asize(vdev_t *pvd, vdev_t *cvd)
 {
 	ASSERT3P(pvd->vdev_ops, ==, &vdev_anyraid_ops);
-	ASSERT3U(spa_config_held(pvd->vdev_spa, SCL_ALL, RW_READER), !=, 0);
 	vdev_anyraid_t *var = pvd->vdev_tsd;
 	if (var->vd_tile_size == 0)
 		return (VDEV_ANYRAID_TOTAL_MAP_SIZE);

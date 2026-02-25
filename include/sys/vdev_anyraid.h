@@ -58,7 +58,7 @@ typedef struct vdev_anyraid {
 typedef struct anyraid_tile_node {
 	list_node_t	atn_node;
 	uint8_t		atn_disk;
-	uint16_t	atn_offset;
+	uint16_t	atn_tile_idx;
 } anyraid_tile_node_t;
 
 typedef struct anyraid_tile {
