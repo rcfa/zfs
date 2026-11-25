@@ -1438,8 +1438,15 @@ process_options(int argc, char **argv)
 		if (zo->zo_vdev_size < min_devsize)
 			zo->zo_vdev_size = min_devsize;
 
-		zo->zo_raid_parity = MIN(zo->zo_raid_parity,
-		    zo->zo_raid_children - 1);
+		/*
+		 * 1 to VDEV_RAIDZ_MAXPARITY parity and at least one data
+		 * column, the width (data + parity) at most the children.
+		 */
+		zo->zo_raid_children = MAX(zo->zo_raid_children, 2);
+		zo->zo_raid_parity = MAX(1, MIN(zo->zo_raid_parity,
+		    MIN(zo->zo_raid_children - 1, VDEV_RAIDZ_MAXPARITY)));
+		zo->zo_draid_data = MAX(1, MIN(zo->zo_draid_data,
+		    zo->zo_raid_children - zo->zo_raid_parity));
 
 		/* anyraid maps are only synced for top-level anyraid vdevs */
 		zo->zo_mirrors = 0;
@@ -1644,8 +1651,9 @@ make_vdev_raid(const char *path, const char *aux, const char *pool, size_t size,
 		    type);
 	} else if (strcmp(ztest_opts.zo_raid_type, VDEV_TYPE_ANYRAIDZ) == 0) {
 		enum vdev_anyraid_parity_type type = VAP_RAIDZ;
-		uint64_t ndata = ztest_opts.zo_draid_data;
-		fnvlist_add_uint64(raid, ZPOOL_CONFIG_ANYRAID_NDATA, ndata);
+		/* vdev_anyraid_init() reads a uint8, as zpool writes it */
+		uint8_t ndata = ztest_opts.zo_draid_data;
+		fnvlist_add_uint8(raid, ZPOOL_CONFIG_ANYRAID_NDATA, ndata);
 		fnvlist_add_uint8(raid, ZPOOL_CONFIG_ANYRAID_PARITY_TYPE,
 		    type);
 	}

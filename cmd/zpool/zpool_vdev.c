@@ -1439,16 +1439,16 @@ anyraidz_config_by_type(nvlist_t *nv, const char *type)
 
 	nparity = (uint64_t)get_parity(type);
 	if (nparity == 0 || nparity > VDEV_RAIDZ_MAXPARITY) {
-		fprintf(stderr,
-		    gettext("invalid anyraid parity level %llu; must be "
-		    "between 1 and %d\n"), (u_longlong_t)nparity,
+		(void) fprintf(stderr,
+		    "invalid anyraid parity level %llu; must be "
+		    "between 1 and %d\n", (u_longlong_t)nparity,
 		    VDEV_RAIDZ_MAXPARITY);
 		return (EINVAL);
 	}
 
 	char *p = (char *)type;
 	if ((p = strchr(p, ':')) == NULL) {
-		fprintf(stderr, gettext("no anyraid data count detected\n"));
+		(void) fprintf(stderr, "no anyraid data count detected\n");
 		return (EINVAL);
 	}
 	char *end;
@@ -1457,8 +1457,8 @@ anyraidz_config_by_type(nvlist_t *nv, const char *type)
 	errno = 0;
 
 	if (!isdigit(p[0])) {
-		(void) fprintf(stderr, gettext("invalid anyraidz "
-		    "syntax; expected <number>:<number> not '%s'\n"),
+		(void) fprintf(stderr, "invalid anyraidz "
+		    "syntax; expected <number>:<number> not '%s'\n",
 		    type);
 		return (EINVAL);
 	}
@@ -1466,20 +1466,20 @@ anyraidz_config_by_type(nvlist_t *nv, const char *type)
 	/* Expected non-zero value with c/d suffix */
 	ndata = strtol(p, &end, 10);
 	if (errno != 0) {
-		(void) fprintf(stderr, gettext("invalid anyraidz "
-		    "syntax; expected <number>:<number> not '%s'\n"),
+		(void) fprintf(stderr, "invalid anyraidz "
+		    "syntax; expected <number>:<number> not '%s'\n",
 		    type);
 		return (EINVAL);
 	}
 
 	if (ndata + nparity > VDEV_ANYRAID_MAX_DISKS) {
-		fprintf(stderr, gettext("too many devices in anyraid group: "
-		    "%"PRIu64" data and %"PRIu64" parity"), ndata, nparity);
+		(void) fprintf(stderr, "too many devices in anyraid group: "
+		    "%"PRIu64" data and %"PRIu64" parity\n", ndata, nparity);
 		return (EINVAL);
 	}
 
 	if (ndata == 0 || nparity == 0) {
-		fprintf(stderr, gettext("invalid %s: must not be zero"),
+		(void) fprintf(stderr, "invalid %s: must not be zero\n",
 		    ndata == 0 ? "ndata" : "nparity");
 		return (EINVAL);
 	}
