@@ -243,7 +243,7 @@ Conflicts: zfs, zfs-fuse, zfsutils-linux
 Suggests: nfs-kernel-server,
           samba-common-bin (>= 3.0.23),
           openzfs-zfs-initramfs | openzfs-zfs-dracut
-Provides: openzfsutils
+Provides: openzfsutils, zfsutils-linux
 Description: command-line tools to manage OpenZFS filesystems
  OpenZFS is a storage platform that encompasses the functionality of
  traditional filesystems and volume managers. It supports data checksums,
